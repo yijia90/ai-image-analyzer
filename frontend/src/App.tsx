@@ -57,10 +57,13 @@ function App() {
     formData.append("image", dataURLtoBlob(image));
 
     try {
-      const response = await fetch("http://localhost:5001/api/identify", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/identify`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       const data = await response.json();
       setPrediction(data.prediction || "");
