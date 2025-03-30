@@ -154,10 +154,13 @@ function App() {
     formData.append("dishCount", dishCount.toString());
 
     try {
-      const res = await fetch("http://localhost:5001/api/recipes", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/recipes`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
       const data = await res.json();
       setIngredients(data.ingredients || []);
       setRecipes(data.dishes || []);
@@ -177,7 +180,7 @@ function App() {
 
     try {
       const res = await fetch(
-        "http://localhost:5001/api/recipe-from-ingredients",
+        `${import.meta.env.VITE_API_BASE_URL}/api/recipe-from-ingredients`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
