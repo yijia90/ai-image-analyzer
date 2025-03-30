@@ -26,21 +26,25 @@ type Recipe = {
   video?: string;
 };
 
-type HistoryEntry = {
-  image: string;
-  ingredients: string[];
-  cuisine: string;
-  recipes: Recipe[];
-};
+// type HistoryEntry = {
+//   image: string;
+//   ingredients: string[];
+//   cuisine: string;
+//   recipes: Recipe[];
+// };
 
 function App() {
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
+  const [loadingMain, setLoadingMain] = useState(false);
+  const [loadingAnother, setLoadingAnother] = useState(false);
+
   const [cuisine, setCuisine] = useState("Italian");
   const [ingredients, setIngredients] = useState<string[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [onDiet, setOnDiet] = useState(false);
+  const [dishCount, setDishCount] = useState(1);
 
   const cuisines = [
     "Any",
@@ -56,49 +60,49 @@ function App() {
     "Vietnamese",
   ];
 
-  useEffect(() => {
-    const stored = localStorage.getItem("recipe_history");
-    if (stored) setHistory(JSON.parse(stored));
-  }, []);
+  // useEffect(() => {
+  //   const stored = localStorage.getItem("recipe_history");
+  //   if (stored) setHistory(JSON.parse(stored));
+  // }, []);
 
-  const saveToHistory = (
-    image: string,
-    cuisine: string,
-    ingredients: string[],
-    newRecipes: Recipe[]
-  ) => {
-    setHistory((prev) => {
-      const existingIndex = prev.findIndex((h) => h.image === image);
-      let updated: HistoryEntry[];
+  // const saveToHistory = (
+  //   image: string,
+  //   cuisine: string,
+  //   ingredients: string[],
+  //   newRecipes: Recipe[]
+  // ) => {
+  //   setHistory((prev) => {
+  //     const existingIndex = prev.findIndex((h) => h.image === image);
+  //     let updated: HistoryEntry[];
 
-      if (existingIndex !== -1) {
-        const existingEntry = prev[existingIndex];
-        const existingRecipeNames = new Set(
-          existingEntry.recipes.map((r) => r.name)
-        );
+  //     if (existingIndex !== -1) {
+  //       const existingEntry = prev[existingIndex];
+  //       const existingRecipeNames = new Set(
+  //         existingEntry.recipes.map((r) => r.name)
+  //       );
 
-        const uniqueNewRecipes = newRecipes.filter(
-          (r) => !existingRecipeNames.has(r.name)
-        );
+  //       const uniqueNewRecipes = newRecipes.filter(
+  //         (r) => !existingRecipeNames.has(r.name)
+  //       );
 
-        const updatedEntry = {
-          ...existingEntry,
-          recipes: [...existingEntry.recipes, ...uniqueNewRecipes],
-        };
+  //       const updatedEntry = {
+  //         ...existingEntry,
+  //         recipes: [...existingEntry.recipes, ...uniqueNewRecipes],
+  //       };
 
-        updated = [...prev];
-        updated[existingIndex] = updatedEntry;
-      } else {
-        updated = [
-          { image, cuisine, ingredients, recipes: newRecipes },
-          ...prev,
-        ];
-      }
+  //       updated = [...prev];
+  //       updated[existingIndex] = updatedEntry;
+  //     } else {
+  //       updated = [
+  //         { image, cuisine, ingredients, recipes: newRecipes },
+  //         ...prev,
+  //       ];
+  //     }
 
-      localStorage.setItem("recipe_history", JSON.stringify(updated));
-      return updated;
-    });
-  };
+  //     localStorage.setItem("recipe_history", JSON.stringify(updated));
+  //     return updated;
+  //   });
+  // };
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -137,15 +141,17 @@ function App() {
 
   const generateRecipes = async () => {
     if (!image) return;
-    setLoading(true);
+    setLoadingMain(true);
+
     setIngredients([]);
     setRecipes([]);
 
     const formData = new FormData();
     formData.append("image", dataURLtoBlob(image));
     formData.append("cuisine", cuisine);
-    formData.append("dishCount", "1");
+    // formData.append("dishCount", "1");
     formData.append("onDiet", onDiet.toString());
+    formData.append("dishCount", dishCount.toString());
 
     try {
       const res = await fetch("http://localhost:5001/api/recipes", {
@@ -155,18 +161,19 @@ function App() {
       const data = await res.json();
       setIngredients(data.ingredients || []);
       setRecipes(data.dishes || []);
-      saveToHistory(image, cuisine, data.ingredients, data.dishes);
+      // saveToHistory(image, cuisine, data.ingredients, data.dishes);
     } catch (error) {
       console.error("Error generating recipes:", error);
     } finally {
-      setLoading(false);
+      setLoadingMain(false);
     }
   };
 
   const generateAnotherRecipe = async () => {
     if (ingredients.length === 0) return;
-    setLoading(true);
-    setRecipes([]);
+    setLoadingAnother(true);
+
+    // setRecipes([]);
 
     try {
       const res = await fetch(
@@ -182,14 +189,16 @@ function App() {
         }
       );
       const data = await res.json();
-      setRecipes(data.dishes || []);
-      if (image) {
-        saveToHistory(image, cuisine, ingredients, data.dishes);
-      }
+      // setRecipes(data.dishes || []);
+      setRecipes((prev) => [...prev, ...(data.dishes || [])]);
+
+      // if (image) {
+      //   saveToHistory(image, cuisine, ingredients, data.dishes);
+      // }
     } catch (error) {
       console.error("Error generating another recipe:", error);
     } finally {
-      setLoading(false);
+      setLoadingAnother(false);
     }
   };
 
@@ -240,6 +249,22 @@ function App() {
             </TextField>
           </Box>
 
+          <Box mt={3}>
+            <TextField
+              select
+              fullWidth
+              label="Number of Recipes"
+              value={dishCount}
+              onChange={(e) => setDishCount(Number(e.target.value))}
+            >
+              {[1, 2, 3, 4, 5].map((count) => (
+                <MenuItem key={count} value={count}>
+                  {count}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
           <Box mt={2}>
             <label>
               <input
@@ -257,13 +282,13 @@ function App() {
             onClick={generateRecipes}
             variant="contained"
             sx={{ mt: 3 }}
-            disabled={loading}
+            disabled={loadingMain}
             startIcon={
-              loading ? <CircularProgress size={24} /> : <SearchIcon />
+              loadingMain ? <CircularProgress size={24} /> : <SearchIcon />
             }
             fullWidth
           >
-            {loading ? "Generating..." : "Generate Recipes"}
+            {loadingMain ? "Generating..." : "Generate Recipes"}
           </Button>
 
           {ingredients.length > 0 && (
@@ -286,8 +311,11 @@ function App() {
                         <Typography variant="h6">{dish.name}</Typography>
                         <Typography>
                           <strong>Ingredients:</strong>{" "}
-                          {dish.ingredients.join(", ")}
+                          {Array.isArray(dish.ingredients)
+                            ? dish.ingredients.join(", ")
+                            : "N/A"}
                         </Typography>
+
                         <Typography>
                           <strong>Estimated Calories:</strong>{" "}
                           {dish.estimatedCalories} kcal
@@ -297,11 +325,17 @@ function App() {
                           <strong>Instructions:</strong>
                         </Typography>
                         <ul>
-                          {dish.instructions.map((step, i) => (
-                            <li key={i}>
-                              <Typography>{step}</Typography>
+                          {Array.isArray(dish.instructions) ? (
+                            dish.instructions.map((step, i) => (
+                              <li key={i}>
+                                <Typography>{step}</Typography>
+                              </li>
+                            ))
+                          ) : (
+                            <li>
+                              <Typography>N/A</Typography>
                             </li>
-                          ))}
+                          )}
                         </ul>
                         {dish.video && (
                           <>
@@ -333,9 +367,18 @@ function App() {
                 onClick={generateAnotherRecipe}
                 variant="outlined"
                 sx={{ mt: 3 }}
-                disabled={loading}
+                disabled={loadingAnother}
+                startIcon={
+                  loadingAnother ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <SearchIcon />
+                  )
+                }
               >
-                🔁 Generate Another Recipe
+                {loadingAnother
+                  ? "Generating..."
+                  : "🔁 Generate Another Recipe"}
               </Button>
             </Box>
           )}
@@ -343,7 +386,7 @@ function App() {
       </Card>
 
       {/* 🧾 HISTORY SECTION */}
-      {history.length > 0 && (
+      {/* {history.length > 0 && (
         <Box mt={5}>
           <Box
             display="flex"
@@ -383,7 +426,10 @@ function App() {
                   />
                 </Box>
                 <Typography variant="body1" gutterBottom>
-                  <strong>Ingredients:</strong> {entry.ingredients.join(", ")}
+                  <strong>Ingredients:</strong>{" "}
+                  {Array.isArray(entry.ingredients)
+                    ? entry.ingredients.join(", ")
+                    : "N/A"}
                 </Typography>
 
                 <Grid container spacing={3}>
@@ -394,18 +440,26 @@ function App() {
                           <Typography variant="h6">{dish.name}</Typography>
                           <Typography>
                             <strong>Ingredients:</strong>{" "}
-                            {dish.ingredients.join(", ")}
+                            {Array.isArray(dish.ingredients)
+                              ? dish.ingredients.join(", ")
+                              : "N/A"}
                           </Typography>
                           <Typography sx={{ mt: 1 }}>
                             <strong>Instructions:</strong>
                           </Typography>
-                          <ol>
-                            {dish.instructions.map((step, j) => (
-                              <li key={j}>
-                                <Typography>{step}</Typography>
+                          <ul>
+                            {Array.isArray(dish.instructions) ? (
+                              dish.instructions.map((step, i) => (
+                                <li key={i}>
+                                  <Typography>{step}</Typography>
+                                </li>
+                              ))
+                            ) : (
+                              <li>
+                                <Typography>N/A</Typography>
                               </li>
-                            ))}
-                          </ol>
+                            )}
+                          </ul>
                         </CardContent>
                       </Card>
                     </Grid>
@@ -415,7 +469,7 @@ function App() {
             </Accordion>
           ))}
         </Box>
-      )}
+      )} */}
     </Container>
   );
 }

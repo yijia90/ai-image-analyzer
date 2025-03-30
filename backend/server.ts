@@ -13,7 +13,6 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 
 app.use(cors());
 app.use(express.json());
@@ -66,7 +65,7 @@ app.post("/api/recipes", upload.single("image"), (req, res) => {
       });
 
       const prompt = `
-You are a world-class AI chef and food expert.
+You are an expert chef and food expert as well as Nutritionist.
 
 Step 1: Detect the ingredients in the image.
 
@@ -146,7 +145,7 @@ app.post("/api/recipe-from-ingredients", (req: Request, res: Response) => {
     try {
       const { ingredients, cuisine, onDiet } = req.body;
       const dietPrompt = onDiet
-        ? " Make sure the dish is healthy and diet-friendly."
+        ? "Ensure all dishes are healthy and suitable for someone on a diet."
         : "";
       if (
         !ingredients ||
@@ -157,7 +156,7 @@ app.post("/api/recipe-from-ingredients", (req: Request, res: Response) => {
       }
 
       const prompt = `
-You are an expert chef.
+You are an expert chef and food expert as well as Nutritionist.
 
 The user has the following ingredients: ${ingredients.join(", ")}
 Cuisine preference: ${cuisine}.${dietPrompt}
