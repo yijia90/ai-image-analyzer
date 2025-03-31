@@ -17,6 +17,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import imageCompression from "browser-image-compression";
+import { useDropzone } from "react-dropzone";
 
 type Recipe = {
   name: string;
@@ -103,30 +104,25 @@ function App() {
   //     return updated;
   //   });
   // };
-
-  const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // Compress the image if it's too big
-      const compressedFile = await imageCompression(file, {
-        maxSizeMB: 1, // Limit size to under 1MB
-        useWebWorker: true,
-      });
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setImage(base64);
-      };
-      reader.readAsDataURL(compressedFile);
-    } catch (error) {
-      console.error("Image compression failed:", error);
-    }
+  const compressAndRead = async (file: File) => {
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB: 1,
+      useWebWorker: true,
+    });
+    const reader = new FileReader();
+    reader.onloadend = () => setImage(reader.result as string);
+    reader.readAsDataURL(compressedFile);
   };
+
+  const handleImageUploadFromDrop = async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) await compressAndRead(file);
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: { "image/*": [] },
+    onDrop: handleImageUploadFromDrop,
+  });
 
   const dataURLtoBlob = (dataURL: string): Blob => {
     const byteString = atob(dataURL.split(",")[1]);
@@ -206,25 +202,36 @@ function App() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Card sx={{ p: 4 }}>
+    <Container maxWidth="md" sx={{ py: 4, opacity: 0.97 }}>
+      <Card sx={{ p: 4, mt: 4 }}>
         <CardContent>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" gutterBottom align="center">
             🍳 AI-Powered Recipe Generator
           </Typography>
+          {/* <Typography variant="subtitle1" align="center" sx={{ mb: 3 }}>
+            Upload your ingredient photo and get a recipe in seconds!
+          </Typography> */}
 
-          <input
-            type="file"
-            accept="image/*"
-            hidden
-            id="image-upload"
-            onChange={handleImageUpload}
-          />
-          <label htmlFor="image-upload">
-            <Button variant="contained" component="span">
-              Upload Image
-            </Button>
-          </label>
+          <Box
+            {...getRootProps()}
+            sx={{
+              p: 4,
+              width: "60%",
+              mx: "auto",
+              border: "2px dashed #ccc",
+              borderRadius: 2,
+              textAlign: "center",
+              cursor: "pointer",
+              bgcolor: isDragActive ? "#f0f0f0" : "#fafafa",
+            }}
+          >
+            <input {...getInputProps()} />
+            <Typography>
+              {isDragActive
+                ? "Drop your image here..."
+                : "Drag and drop an image or click to upload"}
+            </Typography>
+          </Box>
 
           {image && (
             <Box mt={3} display="flex" justifyContent="center">
@@ -287,7 +294,19 @@ function App() {
             sx={{ mt: 3 }}
             disabled={loadingMain}
             startIcon={
-              loadingMain ? <CircularProgress size={24} /> : <SearchIcon />
+              loadingMain ? (
+                <span
+                  style={{
+                    display: "inline-block",
+                    fontSize: "24px",
+                    animation: "spin 1s linear infinite",
+                  }}
+                >
+                  👨‍🍳
+                </span>
+              ) : (
+                <SearchIcon />
+              )
             }
             fullWidth
           >
@@ -296,7 +315,7 @@ function App() {
 
           {ingredients.length > 0 && (
             <Box mt={4}>
-              <Typography variant="h6">🧄 Detected Ingredients:</Typography>
+              <Typography variant="h6">Detected Ingredients:</Typography>
               <Typography>{ingredients.join(", ")}</Typography>
             </Box>
           )}
@@ -373,7 +392,15 @@ function App() {
                 disabled={loadingAnother}
                 startIcon={
                   loadingAnother ? (
-                    <CircularProgress size={20} />
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontSize: "24px",
+                        animation: "spin 1s linear infinite",
+                      }}
+                    >
+                      👨‍🍳
+                    </span>
                   ) : (
                     <SearchIcon />
                   )
