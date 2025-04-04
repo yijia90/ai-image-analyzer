@@ -18,6 +18,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import imageCompression from "browser-image-compression";
 import { useDropzone } from "react-dropzone";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 type Recipe = {
   name: string;
@@ -46,7 +48,12 @@ function App() {
   // const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [onDiet, setOnDiet] = useState(false);
   const [dishCount, setDishCount] = useState(1);
+  const [showSplash, setShowSplash] = useState(true);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 5000); // 3s
+    return () => clearTimeout(timer);
+  }, []);
   const cuisines = [
     "Any",
     "American",
@@ -200,9 +207,93 @@ function App() {
       setLoadingAnother(false);
     }
   };
+  const exportAllRecipesPDF = (recipes: Recipe[]) => {
+    const doc = new jsPDF();
+    let y = 20;
+    const pageHeight = doc.internal.pageSize.height;
+
+    doc.setFontSize(16);
+    doc.text("Generated Recipes", 14, y);
+    y += 10;
+
+    recipes.forEach((recipe, index) => {
+      if (y > pageHeight - 60) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${index + 1}. ${recipe.name}`, 14, y);
+      y += 8;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      doc.text("Ingredients:", 14, y);
+      y += 6;
+      recipe.ingredients.forEach((ing) => {
+        doc.text(`- ${ing}`, 18, y);
+        y += 6;
+      });
+
+      doc.text("Instructions:", 14, y);
+      y += 6;
+      recipe.instructions.forEach((step, i) => {
+        doc.text(`${i + 1}. ${step}`, 18, y);
+        y += 6;
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      if (recipe.estimatedCalories) {
+        doc.text(`Estimated Calories: ${recipe.estimatedCalories} kcal`, 14, y);
+        y += 8;
+      }
+
+      if (recipe.video) {
+        doc.setTextColor(0, 0, 255);
+        doc.textWithLink("Watch on YouTube", 14, y, { url: recipe.video });
+        doc.setTextColor(0, 0, 0);
+        y += 10;
+      }
+
+      y += 4;
+    });
+
+    doc.save("recipes.pdf");
+  };
 
   return (
     <Container maxWidth="md" sx={{ py: 4, opacity: 0.97 }}>
+      {showSplash && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 100,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 9999,
+            pointerEvents: "none", // lets you click behind it
+            overflow: "hidden",
+          }}
+        >
+          <img
+            src="/chef-logo.gif"
+            alt="Chef Splash"
+            style={{
+              height: 200,
+              animation: "bounceLeftToRight 3s ease-in-out forwards",
+              position: "absolute",
+              top: 100,
+              left: 0,
+            }}
+          />
+        </Box>
+      )}
       <Card sx={{ p: 4, mt: 4 }}>
         <CardContent>
           <Typography variant="h4" gutterBottom align="center">
@@ -212,34 +303,57 @@ function App() {
             Upload your ingredient photo and get a recipe in seconds!
           </Typography> */}
 
-          <Box
-            {...getRootProps()}
-            sx={{
-              p: 4,
-              width: "60%",
-              mx: "auto",
-              border: "2px dashed #ccc",
-              borderRadius: 2,
-              textAlign: "center",
-              cursor: "pointer",
-              bgcolor: isDragActive ? "#f0f0f0" : "#fafafa",
-            }}
-          >
-            <input {...getInputProps()} />
-            <Typography>
-              {isDragActive
-                ? "Drop your image here..."
-                : "Drag and drop an image or click to upload"}
-            </Typography>
-          </Box>
-
-          {image && (
-            <Box mt={3} display="flex" justifyContent="center">
+          {!image ? (
+            <Box
+              {...getRootProps()}
+              sx={{
+                p: 4,
+                width: "60%",
+                mx: "auto",
+                border: "2px dashed #ccc",
+                borderRadius: 2,
+                textAlign: "center",
+                cursor: "pointer",
+                bgcolor: isDragActive ? "#f0f0f0" : "#fafafa",
+              }}
+            >
+              <input {...getInputProps()} />
+              <Typography>
+                {isDragActive
+                  ? "Drop your image here..."
+                  : "Drag and drop an image or click to upload"}
+              </Typography>
+            </Box>
+          ) : (
+            <Box
+              {...getRootProps()}
+              sx={{
+                mt: 3,
+                width: "100%",
+                maxWidth: "400px",
+                mx: "auto",
+                cursor: "pointer",
+                textAlign: "center",
+              }}
+            >
+              <input {...getInputProps()} />
               <img
                 src={image}
                 alt="Uploaded"
-                style={{ maxWidth: "100%", maxHeight: "300px" }}
+                style={{
+                  width: "100%",
+                  borderRadius: 8,
+                  border: "2px dashed #ccc",
+                }}
               />
+              <Typography
+                variant="caption"
+                display="block"
+                mt={1}
+                color="textSecondary"
+              >
+                Click image to replace
+              </Typography>
             </Box>
           )}
 
@@ -287,7 +401,13 @@ function App() {
               </Typography>
             </label>
           </Box>
-
+          <Button
+            onClick={() => exportAllRecipesPDF(recipes)}
+            variant="outlined"
+            sx={{ mt: 3 }}
+          >
+            📄 Export All Recipes
+          </Button>
           <Button
             onClick={generateRecipes}
             variant="contained"

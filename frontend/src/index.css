@@ -91,3 +91,26 @@ body::before {
   opacity: 0.4; /* 👈 Set to 0.6 here */
   z-index: -1;
 }
+
+@keyframes bounceLeftToRight {
+  0% {
+    transform: translateX(-150%) translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(25vw) translateY(-30px);
+  }
+  50% {
+    transform: translateX(50vw) translateY(0px);
+  }
+  75% {
+    transform: translateX(75vw) translateY(-15px);
+  }
+  100% {
+    transform: translateX(100vw) translateY(0px);
+    opacity: 0;
+  }
+}
